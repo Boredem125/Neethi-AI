@@ -416,13 +416,3 @@ async def get_audit_log(
         query = query.filter(AuditLog.tender_id == tender_id)
     logs = query.order_by(desc(AuditLog.timestamp)).limit(limit).all()
     return [AuditLogOut.model_validate(log) for log in logs]
-
-
-@router.post("/seed")
-async def manual_seed(db: Session = Depends(get_db)):
-    try:
-        from app.core.seed import seed_db
-        seed_db(db)
-        return {"message": "Demo data loaded successfully"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))

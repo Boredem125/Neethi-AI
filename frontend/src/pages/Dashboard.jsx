@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, Gavel, ClipboardList, Shield, Building, Network, ExternalLink, Play } from 'lucide-react';
-import { getDashboardStats, getTenders, seedDemoData } from '../api/client';
+import { Users, Gavel, ClipboardList, Shield, Building, Network, ExternalLink, Zap } from 'lucide-react';
+import { getDashboardStats, getTenders } from '../api/client';
+import { isDemoMode, enableDemo, disableDemo } from '../api/demoData';
 import { useLang } from '../App';
 
 export default function Dashboard() {
@@ -11,33 +12,13 @@ export default function Dashboard() {
   const [stats, setStats]   = useState(null);
   const [tenders, setTenders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [seeding, setSeeding] = useState(false);
 
-  const fetchAll = () => {
-    setLoading(true);
+  useEffect(() => {
     Promise.all([getDashboardStats(), getTenders()])
       .then(([s, td]) => { setStats(s.data); setTenders(td.data.slice(0, 5)); })
       .catch(console.error)
       .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    fetchAll();
   }, []);
-
-  const handleSeed = async () => {
-    if (seeding) return;
-    setSeeding(true);
-    try {
-      await seedDemoData();
-      fetchAll();
-    } catch (err) {
-      console.error(err);
-      alert("Failed to load demo data");
-    } finally {
-      setSeeding(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -68,8 +49,37 @@ export default function Dashboard() {
     return <span className="badge badge-review">{t('Manual Review','ಕೈಪರಿಶೀಲನೆ')}</span>;
   };
 
+  const handleLoadDemo = () => {
+    enableDemo();
+    window.location.reload();
+  };
+
+  const handleExitDemo = () => {
+    disableDemo();
+    window.location.reload();
+  };
+
   return (
     <div>
+      {/* Demo Mode Banner */}
+      {isDemoMode() && (
+        <div style={{ marginBottom: 16, padding: '10px 20px', borderRadius: 8, background: 'rgba(255,152,0,0.1)', border: '1px solid rgba(255,152,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: 12, color: 'var(--orange-l)', fontWeight: 600 }}>⚡ DEMO MODE — Showing sample Karnataka tender data</span>
+          <button onClick={handleExitDemo} style={{ fontSize: 11, padding: '4px 12px', background: 'transparent', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--muted)', cursor: 'pointer' }}>Exit Demo</button>
+        </div>
+      )}
+
+      {/* Load Demo Button — show when no data */}
+      {!isDemoMode() && s.total_tenders === undefined && (
+        <div style={{ marginBottom: 16, padding: '20px', borderRadius: 8, background: 'var(--bg3)', border: '1px dashed var(--border)', textAlign: 'center' }}>
+          <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12 }}>{t('No backend connected. Load demo data to explore the platform.', 'ಬ್ಯಾಕೆಂಡ್ ಸಂಪರ್ಕವಿಲ್ಲ. ಡೆಮೊ ಡೇಟಾ ಲೋಡ್ ಮಾಡಿ.')}</p>
+          <button onClick={handleLoadDemo} className="btn-new-eval" style={{ width: 'auto', padding: '10px 24px', marginTop: 0 }}>
+            <Zap size={14} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+            {t('🎯 Load Demo Data', '🎯 ಡೆಮೊ ಡೇಟಾ ಲೋಡ್ ಮಾಡಿ')}
+          </button>
+        </div>
+      )}
+
       {/* ── STAT CARDS ── */}
       <div className="stat-grid">
         <div className="card stat-card">
@@ -201,18 +211,7 @@ export default function Dashboard() {
               {tenders.length === 0 && (
                 <tr>
                   <td colSpan="5">
-                    <div className="empty-state">
-                      <p>{t('No tenders found.','ಟೆಂಡರ್‌ಗಳು ಕಂಡುಬಂದಿಲ್ಲ.')}</p>
-                      <button 
-                        onClick={handleSeed} 
-                        disabled={seeding}
-                        className="btn-new-eval" 
-                        style={{ marginTop: 15, width: 'auto', padding: '10px 20px' }}
-                      >
-                        <Play size={15} />
-                        {seeding ? t('Loading...', 'ಲೋಡ್ ಮಾಡಲಾಗುತ್ತಿದೆ...') : t('Load Demo Data', 'ಡೆಮೊ ಡೇಟಾ ಲೋಡ್ ಮಾಡಿ')}
-                      </button>
-                    </div>
+                    <div className="empty-state"><p>{t('No tenders found.','ಟೆಂಡರ್‌ಗಳು ಕಂಡುಬಂದಿಲ್ಲ.')}</p></div>
                   </td>
                 </tr>
               )}
