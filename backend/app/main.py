@@ -18,6 +18,11 @@ logger = logging.getLogger("neethi")
 async def lifespan(app: FastAPI):
     logger.info("NEETHI AI — ನೀತಿ Starting...")
     Base.metadata.create_all(bind=engine)
+    
+    # Auto-seed the database if empty
+    from app.core.seed import run_auto_seed
+    run_auto_seed()
+    
     os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
     from app.services.groq_service import groq_service
     logger.info(f"Groq API: {'configured' if groq_service.is_available() else 'NOT configured'}")
