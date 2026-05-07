@@ -1,0 +1,14 @@
+node_modules/
+venv/
+__pycache__/
+*.pyc
+.env
+neethi.db
+dist/
+uploads/
+.DS_Store
+.gemini/
+.vscode/
+frontend/dist/
+backend/uploads/
+backend/neethi.db
