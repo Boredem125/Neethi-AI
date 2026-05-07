@@ -44,5 +44,6 @@ export const submitReview   = (id, d)     => api.post(`/verdicts/${id}/review`, 
 // Audit
 export const getAuditLogs   = (params)    => api.get('/audit-log', { params });
 export const getAuditLog    = (params)    => api.get('/audit-log', { params });
+export const seedDemoData   = ()          => api.post('/seed');
 
 export default api;

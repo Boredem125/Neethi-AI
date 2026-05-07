@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, Gavel, ClipboardList, Shield, Building, Network, ExternalLink } from 'lucide-react';
-import { getDashboardStats, getTenders } from '../api/client';
+import { Users, Gavel, ClipboardList, Shield, Building, Network, ExternalLink, Play } from 'lucide-react';
+import { getDashboardStats, getTenders, seedDemoData } from '../api/client';
 import { useLang } from '../App';
 
 export default function Dashboard() {
@@ -11,13 +11,33 @@ export default function Dashboard() {
   const [stats, setStats]   = useState(null);
   const [tenders, setTenders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [seeding, setSeeding] = useState(false);
 
-  useEffect(() => {
+  const fetchAll = () => {
+    setLoading(true);
     Promise.all([getDashboardStats(), getTenders()])
       .then(([s, td]) => { setStats(s.data); setTenders(td.data.slice(0, 5)); })
       .catch(console.error)
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchAll();
   }, []);
+
+  const handleSeed = async () => {
+    if (seeding) return;
+    setSeeding(true);
+    try {
+      await seedDemoData();
+      fetchAll();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to load demo data");
+    } finally {
+      setSeeding(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -181,7 +201,18 @@ export default function Dashboard() {
               {tenders.length === 0 && (
                 <tr>
                   <td colSpan="5">
-                    <div className="empty-state"><p>{t('No tenders found.','ಟೆಂಡರ್‌ಗಳು ಕಂಡುಬಂದಿಲ್ಲ.')}</p></div>
+                    <div className="empty-state">
+                      <p>{t('No tenders found.','ಟೆಂಡರ್‌ಗಳು ಕಂಡುಬಂದಿಲ್ಲ.')}</p>
+                      <button 
+                        onClick={handleSeed} 
+                        disabled={seeding}
+                        className="btn-new-eval" 
+                        style={{ marginTop: 15, width: 'auto', padding: '10px 20px' }}
+                      >
+                        <Play size={15} />
+                        {seeding ? t('Loading...', 'ಲೋಡ್ ಮಾಡಲಾಗುತ್ತಿದೆ...') : t('Load Demo Data', 'ಡೆಮೊ ಡೇಟಾ ಲೋಡ್ ಮಾಡಿ')}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               )}
