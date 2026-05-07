@@ -31,7 +31,10 @@ class Settings(BaseSettings):
     GOOGLE_VISION_API_KEY: str = os.getenv("GOOGLE_VISION_API_KEY", "")
 
     # File uploads
-    UPLOAD_DIR: str = os.getenv("UPLOAD_DIR", "./uploads")
+    UPLOAD_DIR: str = os.getenv(
+        "UPLOAD_DIR", 
+        "/tmp/uploads" if os.getenv("VERCEL") else "./uploads"
+    )
 
     # Tesseract OCR
     TESSERACT_CMD: str = os.getenv(

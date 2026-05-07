@@ -18,11 +18,6 @@ logger = logging.getLogger("neethi")
 async def lifespan(app: FastAPI):
     logger.info("NEETHI AI — ನೀತಿ Starting...")
     Base.metadata.create_all(bind=engine)
-    
-    # Auto-seed the database if empty
-    from app.core.seed import run_auto_seed
-    run_auto_seed()
-    
     os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
     from app.services.groq_service import groq_service
     logger.info(f"Groq API: {'configured' if groq_service.is_available() else 'NOT configured'}")
@@ -43,7 +38,24 @@ app.add_middleware(
     allow_credentials=True, allow_methods=["*"], allow_headers=["*"],
 )
 
-app.include_router(router, prefix="/api")
+# Global flag to ensure we only try to seed once per instance startup
+_seeded = False
+
+@app.middleware("http")
+async def ensure_seeded_middleware(request, call_next):
+    global _seeded
+    if not _seeded and request.url.path.startswith("/api"):
+        try:
+            from app.core.seed import run_auto_seed
+            run_auto_seed()
+            _seeded = True
+        except Exception as e:
+            logger.error(f"Seeding failed: {e}")
+    return await call_next(request)
+
+# Use /api prefix locally, but strip it for Vercel since Vercel's routePrefix already handles it
+api_prefix = "" if os.getenv("VERCEL") else "/api"
+app.include_router(router, prefix=api_prefix)
 
 
 @app.get("/")
