@@ -22,7 +22,10 @@ class Settings(BaseSettings):
     GROQ_MODEL: str = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 
     # Database
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./neethi.db")
+    DATABASE_URL: str = os.getenv(
+        "DATABASE_URL", 
+        "sqlite:////tmp/neethi.db" if os.getenv("VERCEL") else "sqlite:///./neethi.db"
+    )
 
     # Google Vision API (optional OCR fallback)
     GOOGLE_VISION_API_KEY: str = os.getenv("GOOGLE_VISION_API_KEY", "")
