@@ -79,7 +79,7 @@ def seed():
         estimated_value=28000000,
         published_date=now - timedelta(days=15),
         closing_date=now + timedelta(days=5),
-        status=TenderStatus.EVALUATED,
+        status=TenderStatus.CLOSED,
         raw_text="Jal Jeevan Mission tender for drinking water supply.",
     )
     db.add(t3)
@@ -92,22 +92,69 @@ def seed():
     ]
     db.add_all(criteria_t3)
 
+    # Tender 4: Bengaluru Smart City IT
+    t4 = Tender(
+        title="Implementation of Integrated Command and Control Center (ICCC) Phase 2",
+        reference_number="BSCL/IT/2025/089",
+        department="Bengaluru Smart City Limited",
+        district="Bengaluru Urban",
+        estimated_value=124000000,
+        published_date=now - timedelta(days=2),
+        closing_date=now + timedelta(days=45),
+        status=TenderStatus.ACCEPTING_BIDS,
+        raw_text="IT infrastructure and software implementation for Smart City project.",
+    )
+    db.add(t4)
+    db.flush()
+
+    criteria_t4 = [
+        Criterion(tender_id=t4.id, name="CMMI Level 5 Certification", description="Company must be CMMI Level 5 certified", category=CriterionCategory.CERTIFICATION, is_mandatory=True, threshold_value="5", threshold_unit="level", threshold_operator="=="),
+        Criterion(tender_id=t4.id, name="Data Center Experience", description="Must have managed at least 2 Tier-3 Data Centers for govt entities", category=CriterionCategory.EXPERIENCE, is_mandatory=True, threshold_value="2", threshold_unit="centers", threshold_operator=">="),
+    ]
+    db.add_all(criteria_t4)
+
+    # Tender 5: Tribal Welfare Construction (SC/ST focus)
+    t5 = Tender(
+        title="Construction of Post-Matric Boys Hostel at Kolar under Tribal Sub-Plan",
+        reference_number="TWD/EE/KLR/2025/442",
+        department="Tribal Welfare Department",
+        district="Kolar",
+        estimated_value=35000000,
+        published_date=now - timedelta(days=25),
+        closing_date=now - timedelta(days=2),
+        status=TenderStatus.EVALUATED,
+        raw_text="Construction project reserved for SC/ST category contractors as per KTPP Act reservation norms.",
+    )
+    db.add(t5)
+    db.flush()
+
+    criteria_t5 = [
+        Criterion(tender_id=t5.id, name="SC/ST Category Certificate", description="Must provide valid SC/ST contractor certificate issued by Social Welfare Dept", category=CriterionCategory.COMPLIANCE, is_mandatory=True, threshold_value="", threshold_unit="boolean", threshold_operator="exists"),
+        Criterion(tender_id=t5.id, name="Local Experience", description="At least 1 year of construction experience in Kolar district", category=CriterionCategory.EXPERIENCE, is_mandatory=False, threshold_value="1", threshold_unit="year", threshold_operator=">="),
+    ]
+    db.add_all(criteria_t5)
+
     # Add sample bidders for T3 (evaluated tender)
-    b1 = Bidder(tender_id=t3.id, company_name="Sri Vinayaka Constructions", contact_person="Ramesh Gowda", category=BidderCategory.GENERAL, status=BidderStatus.ELIGIBLE, overall_score=100.0)
+    b1 = Bidder(tender_id=t3.id, company_name="Sri Vinayaka Constructions", contact_person="Ramesh Gowda", category=BidderCategory.GENERAL, status=BidderStatus.ELIGIBLE, overall_score=100.0, is_awarded=True)
     b2 = Bidder(tender_id=t3.id, company_name="ಹೊಸ ಯುಗ ಇನ್‌ಫ್ರಾ (Hosa Yuga Infra)", contact_person="Suresh Patil", category=BidderCategory.CAT_2A, status=BidderStatus.MANUAL_REVIEW, overall_score=66.7)
     b3 = Bidder(tender_id=t3.id, company_name="Kaveri Infrastructure Pvt Ltd", contact_person="Anand Kumar", category=BidderCategory.GENERAL, status=BidderStatus.NOT_ELIGIBLE, overall_score=33.3)
     db.add_all([b1, b2, b3])
+
+    # Add sample bidders for T5
+    b4 = Bidder(tender_id=t5.id, company_name="Valmiki Civil Works", contact_person="Vijay Kumar", category=BidderCategory.ST, status=BidderStatus.ELIGIBLE, overall_score=95.0)
+    b5 = Bidder(tender_id=t5.id, company_name="General Infra Corp", contact_person="Lokesh", category=BidderCategory.GENERAL, status=BidderStatus.NOT_ELIGIBLE, overall_score=20.0)
+    db.add_all([b4, b5])
     db.flush()
 
     # Add verdicts for T3
     for criterion in criteria_t3:
-        # B1: all eligible
-        db.add(Verdict(bidder_id=b1.id, criterion_id=criterion.id, status=VerdictStatus.ELIGIBLE, extracted_value="Meets requirement", reasoning="Document clearly shows compliance.", confidence_score=0.95))
+        # B1: all eligible (Winner)
+        db.add(Verdict(bidder_id=b1.id, criterion_id=criterion.id, status=VerdictStatus.ELIGIBLE, extracted_value="Meets requirement", reasoning="Document clearly shows compliance with all KTPP norms.", confidence_score=0.98))
         # B2: mixed
         if criterion.name.startswith("KPWD"):
             db.add(Verdict(bidder_id=b2.id, criterion_id=criterion.id, status=VerdictStatus.ELIGIBLE, extracted_value="Class 3 KPWD", reasoning="KPWD certificate submitted in Kannada, verified.", confidence_score=0.88))
         elif criterion.name.startswith("Similar"):
-            db.add(Verdict(bidder_id=b2.id, criterion_id=criterion.id, status=VerdictStatus.MANUAL_REVIEW, extracted_value="ಅನುಭವ ಪ್ರಮಾಣಪತ್ರ (Experience certificate)", reasoning="Experience certificate is in Kannada with handwritten annotations. OCR confidence is 62%. The GP resolution number is partially illegible. Manual verification of project value needed.", confidence_score=0.62))
+            db.add(Verdict(bidder_id=b2.id, criterion_id=criterion.id, status=VerdictStatus.MANUAL_REVIEW, extracted_value="ಅನುಭವ ಪ್ರಮಾಣಪತ್ರ (Experience certificate)", reasoning="Experience certificate is in Kannada with handwritten annotations. OCR confidence is 62%. Manual verification of project value needed.", confidence_score=0.62))
         else:
             db.add(Verdict(bidder_id=b2.id, criterion_id=criterion.id, status=VerdictStatus.ELIGIBLE, extracted_value="₹1.2 Crore avg", reasoning="Financial statements show compliance.", confidence_score=0.91))
         # B3: mostly not eligible
@@ -119,19 +166,16 @@ def seed():
     # Audit logs
     db.add_all([
         AuditLog(tender_id=t1.id, action="tender_created", entity_type="tender", entity_id=t1.id, details={"title": t1.title}, performed_by="system"),
-        AuditLog(tender_id=t1.id, action="criteria_extracted", entity_type="tender", entity_id=t1.id, details={"criteria_count": 7}, performed_by="system"),
-        AuditLog(tender_id=t2.id, action="tender_created", entity_type="tender", entity_id=t2.id, details={"title": t2.title}, performed_by="system"),
-        AuditLog(tender_id=t3.id, action="tender_created", entity_type="tender", entity_id=t3.id, details={"title": t3.title}, performed_by="system"),
         AuditLog(tender_id=t3.id, action="tender_evaluated", entity_type="tender", entity_id=t3.id, details={"bidders_evaluated": 3}, performed_by="system"),
+        AuditLog(tender_id=t3.id, action="tender_awarded", entity_type="bidder", entity_id=b1.id, details={"awarded_to": b1.company_name}, performed_by="officer"),
+        AuditLog(tender_id=t5.id, action="bidder_registered", entity_type="bidder", entity_id=b4.id, details={"company": b4.company_name, "category": "ST"}, performed_by="system"),
     ])
 
     db.commit()
     db.close()
     print("Seed data created successfully!")
-    print(f"  - 3 tenders")
-    print(f"  - 15 criteria")
-    print(f"  - 3 bidders (for Dharwad tender)")
-    print(f"  - 9 verdicts")
+    print(f"  - 5 tenders")
+    print(f"  - 5 bidders (with diverse outcomes)")
 
 
 if __name__ == "__main__":
